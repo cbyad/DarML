@@ -10,7 +10,6 @@ import org.apache.spark.mllib.evaluation.RegressionMetrics
 
 
 object App {
-  val NB_lines = 50
 
   Logger.getLogger("org").setLevel(Level.OFF)
   Logger.getLogger("akka").setLevel(Level.OFF)
@@ -22,10 +21,10 @@ object App {
       .csv(path)
   }
 
-  def runTrainingAndEstimation(data: DataFrame, labelCol: String, numFeatCols: Array[String],
+  def runTrainingAndEstimation(data: DataFrame, labelCol: String, numFeatCols: Array[String], out: String,
                                categFeatCols: Array[String] = Array()): DataFrame = {
 
-    val lr = new LinearRegression().setLabelCol(labelCol)
+    val lr = new LinearRegression().setLabelCol(labelCol).setMaxIter(20)
     val assembler = new VectorAssembler()
     val pipeline = new Pipeline()
 
@@ -39,7 +38,7 @@ object App {
 
       var featureCols = numFeatCols
       val indexers = categFeatCols.map(c =>
-        new StringIndexer().setInputCol(c).setOutputCol(s"${c}_idx")
+        new StringIndexer().setInputCol(c).setOutputCol(s"${c}_idx").setHandleInvalid("keep")
       )
       val encoders = categFeatCols.map(c => {
         val outputCol = s"${c}_enc"
@@ -64,15 +63,15 @@ object App {
     val predictionsAndObservations = predictions
       .select("prediction", labelCol)
       .rdd
-      .map(row => (row.getDouble(0), row.getInt(1).toDouble))
+      .map(row => (row.getDouble(0), row.getDecimal(1).doubleValue()))
     val metrics = new RegressionMetrics(predictionsAndObservations)
     val rmse = metrics.rootMeanSquaredError
     println("RMSE: " + rmse)
-
+    predictions.select("prediction", "sale_price", "year_of_sale", "neighborhood").coalesce(1).
+      write.format("com.databricks.spark.csv").option("header", "true").save(out)
     predictions
   }
 
-  println("Hello World!")
 
   val sparkSession: SparkSession = SparkSession.builder
     .master("local")
@@ -83,12 +82,31 @@ object App {
 
 
   def main(args: Array[String]): Unit = {
-    // Example 1 (RDD replaced by Dataset API of Spark 2)
-    val dataFolder = "/Users/cb_mac/Desktop/UPMC/M2/AAGA/TME/BrooklynHousePricing/files/"
-    val brooklynPath = dataFolder + "brooklyn_sales_map.csv"
-    //val brooklynHouses: Dataset[String] = sparkSession.read.textFile(brooklynPath)
+    println("Welcome to Brooklyn House Pricing ML App")
 
-    val brooklyn_sales: DataFrame = readCsv(sparkSession, brooklynPath)
+    val lines: Int = 390883
+    val input: String = args(0)
+    val limit: Float = args(1).toFloat
+    val percentage: Int = (lines * (limit / 100)).toInt
+
+    if (limit < 1 || limit > 100) {
+      println(s"sorry! $limit is out of bound ")
+      System.exit(1)
+    }
+    println(s"Evaluate $limit % of the data...")
+
+    val brooklynPath = input
+    val brooklyn_sales: DataFrame = readCsv(sparkSession, brooklynPath).limit(percentage)
+
+    val filtered_data = brooklyn_sales.select("borough1", "neighborhood", "building_class_category",
+      "tax_class", "block", "lot", "building_class", "address9", "zip_code", "residential_units",
+      "commercial_units", "total_units", "land_sqft", "gross_sqft",
+      "year_built", "tax_class_at_sale", "building_class_at_sale",
+      "sale_price", "sale_date", "year_of_sale", "BldgClass", "BldgArea", "NumBldgs",
+      "NumFloors", "YearBuilt", "YearAlter1", "YearAlter2", "HistDist", "XCoord",
+      "YCoord", "ZoneMap", "TaxMap", "Version", "SHAPE_Leng", "SHAPE_Area").filter($"year_of_sale" =!= 2017)
+
+    val df = filtered_data.na.drop.filter($"sale_price" =!= 0)
 
     //filter data set with some pertinent column name
     val numericCols = Array(
@@ -101,19 +119,15 @@ object App {
       "commercial_units"
     )
 
-    val categCols = Array("neighborhood", "sale_date","zip_code")
+    val categCols = Array("neighborhood", "zip_code")
     //val numericCols  = Array("year_of_sale")
+
     val labelCol = "sale_price"
     // entrainement avec uniquement des features numériques
-    val filtered_data = brooklyn_sales.filter($"year_of_sale" =!= 2017)
-    runTrainingAndEstimation(filtered_data, labelCol, numericCols)
+
     // entrainement avec features numériques et catégorielles
-    runTrainingAndEstimation(filtered_data, labelCol, numericCols, categCols)
+    runTrainingAndEstimation(df, labelCol, numericCols, "predWithNumCols")
+    runTrainingAndEstimation(df, labelCol, numericCols, "predWithAll", categCols)
   }
-
-  /**
-    * prediction Linear Regression
-    */
-
 
 }

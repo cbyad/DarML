@@ -1,0 +1,70 @@
+soumettre le job (utiliser le code packagé dans le .jar en précisant le nom de la classe/objet qui contient la méthode _main_ ) :
+
+```spark-submit --class fr.upmc_insta.stl.dar.SparkTest --master local spark-test.jar```
+par rapport à la compilation en .jar: si vous utiliser `Build => Build Project (Ctrl+F9)` d'IntelliJ, le Jar de sortie sera dans le dossier `spark-test/out/artifacts/spark-test-jar`.  Sinon, si vous aimez lancer Maven à partir de la ligne de commande (Maven que vous avez probablement installé sur votre PC, pas le plugin Maven d'IntelliJ, il suffit de lancer `mvn clean package` depuis le dossier racine de votre projet, là où il y a le fichier `pom.xml`. *attention!* dans ce cas votre .jar sera généré dans `target/spark-test-1.0-SNAPSHOT.jar` et non pas dans `out`
+
+
+-----------------------------------------------------------------------
+*Spec du projet "analyse de données en Spark" de notre cours DAR.*
+
+Etapes obligatoires à faire:
+
+
+1) choix d'une problématique business (imaginez-vous gérer un business)
+DONE
+
+2) choix d'un dataset dont l'analyse répond à la problématique business posée au-dessus. Hypothèse: les données "cachent" les connaissances qui vont aider à notre business, mais ne sont pas visibles au premier regard: il ne suffit pas de juste utiliser les valeurs données dans le dataset d'entrée, il faut faire un analyse qui nous donne un avantage vis-à-vis des concurrents qui eux aussi ont l'accès aux mêmes données bruts mais ne performent aucun traitement.
+DONE
+
+3) chargement des données (sampling pour réduire la taille, si jamais le jeu complet est trop gros)
+DONE
+
+4) prétraitement: nettoyage et préparation des données (Spark SQL, obligatoire)
+ choix des colonnes pertinentes DONE
+ statistique basique sur des colonnes (avg, stddev, nb des valeurs manquantes etc.)
+ si des valeurs manquantes ("N/A"), stratégie pour les gérer: filtrer les lignes complètement ou remplacer les "N/A" par les moyennes
+
+              => Trier par années
+              => Prix moyen de 2010 à 2016 de toutes les instances, des instances par quartiers
+
+
+5) analyse des données, *descriptive* OU *prédictive*:
+
+ 5a) analyse *descriptive* (Spark SQL): jointures/groupby/agrégation pour calculer l'ensemble des métriques que vous chercher à obtenir. Pour avoir l'idée de type d'analyse descriptive, cf. ce Kernel d'un des datasets Kaggle: https://www.kaggle.com/jeanmidev/smart-meters-in-london Au niveau de quantité des métriques à calculer, ce kernel est bien plus grand de ce que je vous demande à faire. Pour vous, 4-5 graphiques (barchart, linechart, scatterplot, piechart, ...) peuvent suffire. Essayez de trouver les résultats non-triviaux
+
+ OU
+
+ 5b) analyse *prédictive* Machine Learning (Spark MLlib): 
+    définir une variable cible à prédire => Prix
+    diviser le jeu de données en jeu d'entrainement (TrainSet) et de test (TestSet)
+    entrainer le modèle machine learning sur le TrainSet
+    utiliser le modèle entrainé pour prédire la variable cible dans le TestSet
+    estimer la qualité des prédictions en comparant les valeurs prédites vs réelles de la variable cible dans le TestSet
+
+
+6) export (en csv) des résultats obtenus
+
+7) dataviz des résultats
+
+ 7a) pour l'analyse descriptif sans Machine Learning: produire un dashboard avec D3.js (page HTML statique + Javascript qui utilise le CSV des résultats agrégés); exemples d3.js ici:  https://github.com/d3/d3/wiki/Gallery  
+
+ 7b) pour l'analyse prédictive: juste un graph qui démontre la qualité du modèle
+
+
+8) Conclusions: comment on peut utiliser ces résultats pour améliorer notre business?
+kaggle.com
+Smart meters in London
+Smart meter data from London area
+GitHub
+d3/d3
+d3 - Bring data to life with SVG, Canvas and HTML. :histogramme::graphique_vers_le_haut::tada:
+*Livrables:*
+
++ Rapport qui explique les étapes 1-8 ci-dessus (problématique business, dataset, quels traitement on fait avec les données, résultats obtenus)
++ Code Spark Scala qui implémente l'analyse en question. Livrer l'arborescence complète avec:  
+    fichiers source (.scala)
+    version packagé (.jar)
++ Fichier(s) d'input
++ Les résultats en sortie (.csv)
++ Dataviz :
+ pour l'analyse descriptive:  page .html + code .js du dashboard  OU  pour Machine Learning: la courbe de la qualité du modèle
