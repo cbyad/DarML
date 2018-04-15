@@ -3,6 +3,9 @@ package com.upmc.dar
 import java.io.{File, InputStream, OutputStream, PrintWriter}
 import scala._
 
+/**
+  * finally didn't use
+  */
 object Utils {
   var cols : Array[String] = new Array[String](500000)
   val home = "/Users/cb_mac/Desktop/UPMC/M2/AAGA/TME/BrooklynHousePricing/files/brooklyn_sales_map.csv"
