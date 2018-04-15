@@ -24,7 +24,7 @@ object App {
   def runTrainingAndEstimation(data: DataFrame, labelCol: String, numFeatCols: Array[String], out: String,
                                categFeatCols: Array[String] = Array()): DataFrame = {
 
-    val lr = new LinearRegression().setLabelCol(labelCol).setMaxIter(20)
+    val lr = new LinearRegression().setLabelCol(labelCol).setMaxIter(10)
     val assembler = new VectorAssembler()
     val pipeline = new Pipeline()
 
@@ -82,21 +82,22 @@ object App {
 
 
   def main(args: Array[String]): Unit = {
-    println("Welcome to Brooklyn House Pricing ML App")
+    println("Welcome to Brooklyn House Pricing ML App...")
 
-    val lines: Int = 390883
     val input: String = args(0)
     val limit: Float = args(1).toFloat
-    val percentage: Int = (lines * (limit / 100)).toInt
 
     if (limit < 1 || limit > 100) {
       println(s"sorry! $limit is out of bound ")
       System.exit(1)
     }
-    println(s"Evaluate $limit % of the data...")
+    println(s"Evaluate $limit % of the dataset ...")
 
     val brooklynPath = input
-    val brooklyn_sales: DataFrame = readCsv(sparkSession, brooklynPath).limit(percentage)
+    val lines = readCsv(sparkSession,brooklynPath).count() // count total number of lines
+
+    val percentage: Int = (lines * (limit / 100)).toInt
+    val brooklyn_sales: DataFrame = readCsv(sparkSession, brooklynPath).limit(percentage)// limit data to compute
 
     val filtered_data = brooklyn_sales.select("borough1", "neighborhood", "building_class_category",
       "tax_class", "block", "lot", "building_class", "address9", "zip_code", "residential_units",
